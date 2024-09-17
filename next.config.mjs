@@ -1,10 +1,7 @@
+// next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-    images: {
-        domains: [
-          "api.microlink.io", // Microlink Image Preview
-        ],
-      },
-};
+  reactStrictMode: true,
+}
 
-export default nextConfig;
+export default nextConfig

@@ -62,6 +62,7 @@ export default function PersonalFinanceDashboard() {
   const [monthlyExpenses, setMonthlyExpenses] = useState(0)
   const [savingsRate, setSavingsRate] = useState(0)
   const [totalBalance, setTotalBalance] = useState(0)
+  
 
   useEffect(() => {
     setIsLoaded(true)
@@ -164,10 +165,10 @@ function NavBar() {
         <span className="sr-only">FinanceTrack</span>
       </Link>
       <Link
-        href="#"
+        href="/"
         className="text-sky-300 transition-colors hover:text-sky-100"
       >
-        Dashboard
+        Home
       </Link>
       <Link
         href="#"
@@ -219,8 +220,8 @@ function MobileNav() {
             <Wallet className="h-6 w-6" />
             <span>FinanceTrack</span>
           </Link>
-          <Link href="#" className="hover:text-sky-100">
-            Dashboard
+          <Link href="/" className="hover:text-sky-100">
+            Home
           </Link>
           <Link
             href="#"

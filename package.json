@@ -9,6 +9,8 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ethersproject/providers": "^5.7.2",
+    "@google/generative-ai": "^0.19.0",
     "@nivo/core": "^0.87.0",
     "@nivo/line": "^0.87.0",
     "@radix-ui/react-avatar": "^1.1.0",
@@ -21,8 +23,10 @@
     "@tsparticles/engine": "^3.5.0",
     "@tsparticles/react": "^3.0.0",
     "@tsparticles/slim": "^3.5.0",
+    "axios": "^1.7.7",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "ethers": "^6.13.2",
     "framer-motion": "^11.5.4",
     "lucide-react": "^0.441.0",
     "mini-svg-data-uri": "^1.4.4",

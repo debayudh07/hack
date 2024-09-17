@@ -3,7 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { ResponsiveLine } from '@nivo/line'
-
+import Link from "next/link"
 const portfolioData = [
   {
     id: "Portfolio Value",
@@ -29,14 +29,15 @@ const investments = [
 export default function Portfolio() {
   return (
     <div className="min-h-screen bg-black text-blue-400 p-8">
+    <Link href="/">Home</Link>
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center mb-8">
           <Avatar className="h-20 w-20 mr-4">
-            <AvatarImage src="/placeholder.svg?height=80&width=80" alt="User" />
-            <AvatarFallback>JP</AvatarFallback>
+            <AvatarImage src="/deba.jpeg?height=80&width=80" alt="User" />
+            <AvatarFallback>DB</AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-3xl font-bold text-blue-300">John Doe</h1>
+            <h1 className="text-3xl font-bold text-blue-300">Debayudh Basu</h1>
             <p className="text-blue-500">Financial Portfolio</p>
           </div>
         </div>

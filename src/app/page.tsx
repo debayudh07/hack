@@ -44,11 +44,11 @@ export default function Homepage() {
           <Link className="text-sm font-medium hover:text-sky-300 transition-colors" href="/dashboard">
             Dashboard
           </Link>
-          <Link className="text-sm font-medium hover:text-sky-300 transition-colors" href="#">
-            About
+          <Link className="text-sm font-medium hover:text-sky-300 transition-colors" href="/savingandbudget">
+            AI based savings
           </Link>
-          <Link className="text-sm font-medium hover:text-sky-300 transition-colors" href="#">
-            Contact
+          <Link className="text-sm font-medium hover:text-sky-300 transition-colors" href="/crypto">
+            Crypto Transaction
           </Link>
         </nav>
         <Button variant="ghost" size="icon" className="md:hidden text-sky-200 hover:text-sky-300" onClick={toggleMenu}>
@@ -77,11 +77,11 @@ export default function Homepage() {
                 <Link className="text-lg font-medium hover:text-sky-300 transition-colors" href="/dashboard" onClick={toggleMenu}>
                   Dashboard
                 </Link>
-                <Link className="text-lg font-medium hover:text-sky-300 transition-colors" href="#" onClick={toggleMenu}>
-                  About
+                <Link className="text-lg font-medium hover:text-sky-300 transition-colors" href="/savingandbudget" onClick={toggleMenu}>
+                  AI based savings
                 </Link>
-                <Link className="text-lg font-medium hover:text-sky-300 transition-colors" href="#" onClick={toggleMenu}>
-                  Contact
+                <Link className="text-lg font-medium hover:text-sky-300 transition-colors" href="/crypto" onClick={toggleMenu}>
+                  Crypto transaction
                 </Link>
               </nav>
             </div>
