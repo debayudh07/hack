@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { BrainCircuit, CreditCard, PieChart, TrendingUp, Menu, X } from "lucide-react"
 import Link from "next/link"
 import { TextHoverEffect } from "@/components/ui/text-hover-effect"
-import { Cover } from "@/components/ui/cover"
+
 import { FlipWords } from "@/components/ui/flip-words"
 
 export default function Homepage() {

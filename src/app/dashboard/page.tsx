@@ -9,18 +9,14 @@ import {
   CircleUser,
   CreditCard,
   DollarSign,
-  LineChart,
+
   Menu,
   PiggyBank,
   Search,
   Wallet,
 } from "lucide-react"
 
-import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar"
+
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
