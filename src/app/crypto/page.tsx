@@ -17,7 +17,7 @@ import { motion } from "framer-motion"
 
 declare global {
   interface Window {
-    ethereum: any
+    ethereum?: any
   }
 }
 
