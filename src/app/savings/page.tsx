@@ -179,8 +179,8 @@ export default function SavingsGoalsPage() {
 
   // Calculate percentage completion for a goal
   const calculatePercentage = (current: bigint, target: bigint) => {
-    if (target === 0n) return 0
-    return Number((current * 100n) / target)
+    if (target === BigInt(0)) return 0
+    return Number((current * BigInt(100)) / target)
   }
 
   return (

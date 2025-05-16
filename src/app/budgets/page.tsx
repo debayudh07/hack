@@ -133,7 +133,7 @@ export default function BudgetsPage() {
 
   // Calculate percentage
   const calculatePercentage = (spent: bigint, budget: bigint) => {
-    if (budget === 0n) return 0
+    if (budget === BigInt(0)) return 0
     return (Number(spent) / Number(budget)) * 100
   }
 
