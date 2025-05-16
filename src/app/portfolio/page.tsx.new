@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input"
 import { 
   ResponsiveLine,
 } from '@nivo/line'
+import { ResponsivePie } from '@nivo/pie'
 import Link from "next/link"
 import { sendCryptoMessage } from '@/lib/cryptoAI'
 import { 
@@ -43,9 +44,11 @@ interface ChatMessage {
   content: string;
 }
 
-export default function Portfolio() {  const [isMenuOpen, setIsMenuOpen] = useState(false)
+export default function Portfolio() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isMobile, setIsMobile] = useState(false)
   const [portfolioHistory, setPortfolioHistory] = useState<{ id: string; color: string; data: { x: string; y: number; }[] }[]>([])
+  const [assetAllocation, setAssetAllocation] = useState<{ id: string; label: string; value: number; color: string; }[]>([])
   
   // AI chat related states
   const [aiMessage, setAiMessage] = useState('')
@@ -122,7 +125,19 @@ export default function Portfolio() {  const [isMenuOpen, setIsMenuOpen] = useSt
       }]
     }
 
+    // Generate mock asset allocation
+    const generateAssetAllocation = () => {
+      // Could be replaced with real data from wallet or API
+      return [
+        { id: 'ETH', label: 'Ethereum', value: 60, color: '#627EEA' },
+        { id: 'BTC', label: 'Bitcoin', value: 25, color: '#F7931A' },
+        { id: 'USDC', label: 'USDC', value: 10, color: '#2775CA' },
+        { id: 'Other', label: 'Other Tokens', value: 5, color: '#8247E5' }
+      ]
+    }
+
     setPortfolioHistory(generateHistoricalData())
+    setAssetAllocation(generateAssetAllocation())
 
     const checkIsMobile = () => {
       setIsMobile(window.innerWidth < 768)
@@ -361,7 +376,7 @@ export default function Portfolio() {  const [isMenuOpen, setIsMenuOpen] = useSt
             </div>
 
             {/* Charts Row */}
-            <div className="grid grid-cols-1 gap-4 mb-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
               {/* Portfolio Performance Chart */}
               <div>
                 <Card className="bg-gray-900 border-blue-700 transition-all duration-300 hover:shadow-lg hover:shadow-blue-700/20">
@@ -408,9 +423,11 @@ export default function Portfolio() {  const [isMenuOpen, setIsMenuOpen] = useSt
                         pointBorderWidth={2}
                         pointBorderColor={{ from: 'serieColor' }}
                         pointLabelYOffset={-12}
-                        useMesh={true}                        enableArea={true}
+                        useMesh={true}
+                        enableArea={true}
                         areaOpacity={0.1}
                         curve="natural"
+                        animate={false}
                         legends={[
                           {
                             anchor: 'bottom-right',
@@ -468,6 +485,52 @@ export default function Portfolio() {  const [isMenuOpen, setIsMenuOpen] = useSt
                             container: {
                               background: '#1F2937',
                               color: '#60A5FA'
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Asset Allocation Chart */}
+              <div>
+                <Card className="bg-gray-900 border-blue-700 transition-all duration-300 hover:shadow-lg hover:shadow-blue-700/20">
+                  <CardHeader>
+                    <CardTitle className="text-blue-300 flex items-center">
+                      <PieChart className="mr-2 h-5 w-5" />
+                      Asset Allocation
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="h-[300px]">
+                      <ResponsivePie
+                        data={assetAllocation}
+                        margin={{ top: 40, right: 80, bottom: 40, left: 80 }}
+                        innerRadius={0.5}
+                        padAngle={0.7}
+                        cornerRadius={3}
+                        activeOuterRadiusOffset={8}
+                        borderWidth={1}
+                        borderColor={{ from: 'color', modifiers: [['darker', 0.2]] }}
+                        arcLinkLabelsSkipAngle={10}
+                        arcLinkLabelsTextColor="#60A5FA"
+                        arcLinkLabelsThickness={2}
+                        arcLinkLabelsColor={{ from: 'color' }}
+                        arcLabelsSkipAngle={10}
+                        arcLabelsTextColor={{ from: 'color', modifiers: [['darker', 2]] }}
+                        animate={false}
+                        theme={{
+                          tooltip: {
+                            container: {
+                              background: '#1F2937',
+                              color: '#60A5FA'
+                            }
+                          },
+                          labels: {
+                            text: {
+                              fill: '#60A5FA'
                             }
                           }
                         }}

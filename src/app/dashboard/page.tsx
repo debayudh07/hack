@@ -54,6 +54,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useAccount, useBalance, useDisconnect, useEnsName } from 'wagmi'
+import { ConnectButton } from '@rainbow-me/rainbowkit'
 
 export default function PersonalFinanceDashboard() {
   const [isLoaded, setIsLoaded] = useState(false)
@@ -254,6 +256,17 @@ function MobileNav() {
 }
 
 function SearchAndUserNav() {
+  // Get wallet state using wagmi hooks
+  const { address, isConnected, chain } = useAccount()
+  const { data: balanceData } = useBalance({ address })
+  const { data: ensName } = useEnsName({ address })
+  const { disconnect } = useDisconnect()
+
+  // Truncate wallet address for display
+  const truncatedAddress = address 
+    ? `${address.substring(0, 6)}...${address.substring(address.length - 4)}`
+    : ''
+
   return (
     <div className="flex w-full items-center gap-4 md:ml-auto md:gap-2 lg:gap-4">
       <form className="ml-auto flex-1 sm:flex-initial">
@@ -266,23 +279,63 @@ function SearchAndUserNav() {
           />
         </div>
       </form>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="secondary" size="icon" className="rounded-full bg-sky-800 text-sky-100 hover:bg-sky-700">
-            <CircleUser className="h-5 w-5" />
-            <span className="sr-only">Toggle user menu</span>
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="bg-black text-sky-300 w-[200px]">
-          <DropdownMenuLabel>My Account</DropdownMenuLabel>
-          <DropdownMenuSeparator className="bg-sky-800" />
-          <DropdownMenuItem className="hover:bg-sky-950 hover:text-sky-100">Profile</DropdownMenuItem>
-          <DropdownMenuItem className="hover:bg-sky-950 hover:text-sky-100">Settings</DropdownMenuItem>
-          <DropdownMenuItem className="hover:bg-sky-950 hover:text-sky-100">Notifications</DropdownMenuItem>
-          <DropdownMenuSeparator className="bg-sky-800" />
-          <DropdownMenuItem className="hover:bg-sky-950 hover:text-sky-100">Log out</DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      
+      {!isConnected ? (
+        <ConnectButton 
+          chainStatus="icon" 
+          showBalance={false}
+          accountStatus="address"
+        />
+      ) : (
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="secondary" size="icon" className="rounded-full bg-sky-800 text-sky-100 hover:bg-sky-700">
+              <CircleUser className="h-5 w-5" />
+              <span className="sr-only">Toggle user menu</span>
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="bg-black text-sky-300 w-[280px]">
+            <DropdownMenuLabel>My Account</DropdownMenuLabel>
+            <div className="px-2 py-3 border-b border-sky-800">
+              <div className="flex items-center gap-2 mb-1">
+                <Wallet className="h-4 w-4 text-sky-500" />
+                <span className="text-sm text-sky-400">Wallet</span>
+              </div>
+              <div className="ml-6 space-y-1">
+                <div className="text-sky-100 font-bold text-lg">
+                  {balanceData ? `${parseFloat(balanceData.formatted).toFixed(4)} ${balanceData.symbol}` : '0.0000 ETH'}
+                </div>
+                <div className="text-xs text-sky-400 flex items-center gap-1">
+                  <span className="bg-sky-900 px-1.5 py-0.5 rounded text-sky-300">
+                    {chain?.name || 'Ethereum'}
+                  </span>
+                  <span className="font-mono">{ensName || truncatedAddress}</span>
+                  <button 
+                    onClick={() => address && navigator.clipboard.writeText(address)}
+                    className="text-sky-500 hover:text-sky-300 p-0.5"
+                    title="Copy address"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <DropdownMenuItem className="hover:bg-sky-950 hover:text-sky-100 mt-1">Profile</DropdownMenuItem>
+            <DropdownMenuItem className="hover:bg-sky-950 hover:text-sky-100">Settings</DropdownMenuItem>
+            <DropdownMenuItem className="hover:bg-sky-950 hover:text-sky-100">Notifications</DropdownMenuItem>
+            <DropdownMenuSeparator className="bg-sky-800" />
+            <DropdownMenuItem 
+              className="hover:bg-sky-950 hover:text-sky-100"
+              onClick={() => disconnect()}
+            >
+              Disconnect Wallet
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      )}
     </div>
   )
 }
