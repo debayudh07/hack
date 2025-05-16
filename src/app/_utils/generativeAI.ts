@@ -13,7 +13,7 @@ const genAI = new GoogleGenerativeAI(apiKey);
 
 // Define the generation model configuration
 const model = genAI.getGenerativeModel({
-  model: 'gemini-1.0-pro',
+  model: 'gemini-2.0-flash',
 });
 
 const generationConfig = {
