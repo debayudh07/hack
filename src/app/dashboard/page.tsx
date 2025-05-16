@@ -3,18 +3,23 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import { ethers } from "ethers"
 import {
   Activity,
   ArrowUpRight,
   CircleUser,
   CreditCard,
   DollarSign,
-
   Menu,
   PiggyBank,
+  RefreshCw,
   Search,
   Wallet,
 } from "lucide-react"
+
+import { contractAddress, contractABI } from "@/contract/contracts"
+import { toast } from "sonner"
+import { cn } from "@/lib/utils"
 
 
 import { Badge } from "@/components/ui/badge"
@@ -171,27 +176,24 @@ function NavBar() {
         className="text-sky-300 transition-colors hover:text-sky-100"
       >
         Home
-      </Link>
-      <Link
+      </Link>      <Link
         href="#"
         className="text-sky-500 transition-colors hover:text-sky-300"
       >
         Accounts
-      </Link>
-      <Link
-        href="#"
+      </Link>      <Link
+        href="/transactions"
         className="text-sky-500 transition-colors hover:text-sky-300"
       >
         Transactions
       </Link>
       <Link
-        href="#"
+        href="/budgets"
         className="text-sky-500 transition-colors hover:text-sky-300"
       >
         Budgets
-      </Link>
-      <Link
-        href="#"
+      </Link>      <Link
+        href="/savings"
         className="text-sky-500 transition-colors hover:text-sky-300"
       >
         Goals
@@ -224,15 +226,14 @@ function MobileNav() {
           </Link>
           <Link href="/" className="hover:text-sky-100">
             Home
-          </Link>
-          <Link
+          </Link>          <Link
             href="#"
             className="text-sky-500 hover:text-sky-300"
           >
             Accounts
           </Link>
           <Link
-            href="#"
+            href="/transactions"
             className="text-sky-500 hover:text-sky-300"
           >
             Transactions
@@ -407,36 +408,64 @@ function FinancialDetails({ isLoaded }: { isLoaded: boolean }) {
 }
 
 function RecentTransactions() {
-  interface Transaction {
-    _id: string;
-    description: string;
-    category: string;
-    date: string;
-    amount: string;
-  }
-
-  const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const { address, isConnected } = useAccount()
+  const [isLoading, setIsLoading] = useState(false)
+  const [transactions, setTransactions] = useState<{
+    description: string
+    category: string
+    date: number
+    amount: bigint
+    isIncome: boolean
+  }[]>([])
+  const [contract, setContract] = useState<ethers.Contract | null>(null)
 
   useEffect(() => {
-    const fetchTransactions = async () => {
-      const res = await fetch('/api/transactions');
-      const data = await res.json();
-      setTransactions(data);
-    };
-    fetchTransactions();
-  }, []);
+    const initializeContract = async () => {
+      if (isConnected && address) {
+        try {
+          setIsLoading(true)
+          // Get provider from window.ethereum
+          const provider = new ethers.BrowserProvider(window.ethereum)
+          const signer = await provider.getSigner()
+          const contractInstance = new ethers.Contract(contractAddress, contractABI, signer)
+          setContract(contractInstance)
+          
+          await fetchTransactions(contractInstance)
+        } catch (error) {
+          console.error("Error initializing contract:", error)
+          toast.error("Failed to connect to blockchain")
+        } finally {
+          setIsLoading(false)
+        }
+      }
+    }
 
-  const addTransaction = async (transaction: Omit<Transaction, '_id'>) => {
-    const res = await fetch('/api/transactions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(transaction),
-    });
-    const newTransaction = await res.json();
-    setTransactions((prev) => [...prev, newTransaction]);
-    setIsDialogOpen(false); // Close the dialog after adding the transaction
-  };
+    initializeContract()
+  }, [isConnected, address])
+
+  const fetchTransactions = async (contractInstance: ethers.Contract) => {
+    try {
+      setIsLoading(true)
+      const result = await contractInstance.getTransactions()
+      setTransactions(result)
+    } catch (error) {
+      console.error("Error fetching transactions:", error)
+      toast.error("Failed to fetch transactions")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const formatDate = (timestamp: number) => {
+    return new Date(Number(timestamp) * 1000).toLocaleDateString()
+  }
+
+  // Format the amount from Wei to Ether and display + or - prefix
+  const formatAmount = (amount: bigint, isIncome: boolean) => {
+    const amountInEth = ethers.formatEther(amount)
+    const prefix = isIncome ? '+' : '-'
+    return `${prefix}${Math.abs(parseFloat(amountInEth)).toFixed(4)} ETH`
+  }
 
   return (
     <div>
@@ -451,222 +480,179 @@ function RecentTransactions() {
             size="sm"
             className="ml-auto gap-1 bg-sky-700 text-sky-100 hover:bg-sky-600"
           >
-            <Link href="#">
+            <Link href="/transactions">
               View All
               <ArrowUpRight className="h-4 w-4" />
             </Link>
           </Button>
-
-          {/* Add Transaction Button */}
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogTrigger asChild>
-              <Button
-                size="sm"
-                className="ml-4 bg-green-700 text-sky-100 hover:bg-green-600"
-              >
-                Add Transaction
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Transaction</DialogTitle>
-                <DialogDescription>Fill in the form below to add a new transaction.</DialogDescription>
-              </DialogHeader>
-
-              {/* Pass the onClose handler to the AddTransactionDialog */}
-              <AddTransactionDialog open={isDialogOpen} onClose={() => setIsDialogOpen(false)} onSave={addTransaction} />
-
-              <DialogFooter>
-                <Button variant="ghost" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
-              </DialogFooter>
-            </DialogContent>
-          </Dialog>
         </CardHeader>
 
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow className="border-sky-800">
-                <TableHead className="text-sky-300">Description</TableHead>
-                <TableHead className="hidden md:table-cell text-sky-300">Category</TableHead>
-                <TableHead className="hidden xl:table-cell text-sky-300">Date</TableHead>
-                <TableHead className="text-right text-sky-300">Amount</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions.map((transaction) => (
-                <TransactionRow
-                  key={transaction._id}
-                  _id={transaction._id}
-                  description={transaction.description}
-                  category={transaction.category}
-                  date={transaction.date}
-                  amount={transaction.amount}
-                />
-              ))}
-            </TableBody>
-          </Table>
+          {transactions.length === 0 ? (
+            <div className="text-center py-8 text-sky-400">
+              {isLoading ? "Loading transactions..." : "No transactions found. Add your first one on the Transactions page!"}
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow className="border-sky-800">
+                  <TableHead className="text-sky-300">Description</TableHead>
+                  <TableHead className="hidden md:table-cell text-sky-300">Category</TableHead>
+                  <TableHead className="hidden xl:table-cell text-sky-300">Date</TableHead>
+                  <TableHead className="text-right text-sky-300">Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {transactions.slice(0, 5).map((tx, index) => (
+                  <TableRow key={index} className="border-sky-800">
+                    <TableCell className="text-sky-100">{tx.description}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      <Badge variant="outline" className="border-sky-700 text-sky-300">
+                        {tx.category}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="hidden xl:table-cell text-sky-400">
+                      {formatDate(tx.date)}
+                    </TableCell>
+                    <TableCell className={`text-right ${tx.isIncome ? 'text-green-400' : 'text-red-400'}`}>
+                      {formatAmount(tx.amount, tx.isIncome)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
-
-      {/* Add Transaction Dialog */}
-      {isDialogOpen && (
-        <AddTransactionDialog
-          open={isDialogOpen}
-          onClose={() => setIsDialogOpen(false)}
-          onSave={addTransaction}
-        />
-      )}
     </div>
   );
 }
 
 interface Transaction {
-  _id: string;
   description: string;
   category: string;
-  date: string;
-  amount: string;
+  date: number;
+  amount: bigint;
+  isIncome: boolean;
 }
-
-function TransactionRow({ description, category, date, amount }: Transaction) {
-  const isIncome = amount.startsWith('+');
-  return (
-    <TableRow className="border-sky-800">
-      <TableCell className="text-sky-100">{description}</TableCell>
-      <TableCell className="hidden md:table-cell">
-        <Badge variant="outline" className="border-sky-700 text-sky-300">
-          {category}
-        </Badge>
-      </TableCell>
-      <TableCell className="hidden xl:table-cell text-sky-400">
-        {new Date(date).toLocaleDateString()}
-      </TableCell>
-      <TableCell className={`text-right ${isIncome ? 'text-green-400' : 'text-red-400'}`}>
-        {amount}
-      </TableCell>
-    </TableRow>
-  );
-}
-
-
-
-interface AddTransactionDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onSave: (transaction: { description: string; category: string; date: string; amount: string }) => void;
-}
-
-function AddTransactionDialog({ open, onClose, onSave }: AddTransactionDialogProps) {
-  const [description, setDescription] = useState('');
-  const [category, setCategory] = useState('');
-  const [date, setDate] = useState('');
-  const [amount, setAmount] = useState('');
-
-  const handleSubmit = async () => {
-    if (!description || !category || !date || !amount) {
-      alert('All fields are required.');
-      return;
-    }
-
-    onSave({ description, category, date, amount });
-    onClose(); // Close the dialog after saving
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogTitle>Add New Transaction</DialogTitle>
-        <DialogDescription>
-          Fill in the form below to add a new transaction to the list.
-        </DialogDescription>
-        <form className="space-y-4">
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-sky-100">
-              Description
-            </label>
-            <input
-              type="text"
-              id="description"
-              className="block w-full px-3 py-2 bg-gray-800 text-sky-100 border border-sky-600 rounded-md"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="category" className="block text-sm font-medium text-sky-100">
-              Category
-            </label>
-            <input
-              type="text"
-              id="category"
-              className="block w-full px-3 py-2 bg-gray-800 text-sky-100 border border-sky-600 rounded-md"
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="date" className="block text-sm font-medium text-sky-100">
-              Date
-            </label>
-            <input
-              type="date"
-              id="date"
-              className="block w-full px-3 py-2 bg-gray-800 text-sky-100 border border-sky-600 rounded-md"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
-          </div>
-          <div>
-            <label htmlFor="amount" className="block text-sm font-medium text-sky-100">
-              Amount
-            </label>
-            <input
-              type="text"
-              id="amount"
-              className="block w-full px-3 py-2 bg-gray-800 text-sky-100 border border-sky-600 rounded-md"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-            />
-          </div>
-          <div className="flex justify-end">
-            <button
-              type="button"
-              className="bg-green-600 text-sky-100 py-2 px-4 rounded hover:bg-green-500"
-              onClick={handleSubmit}
-            >
-              Add Transaction
-            </button>
-            <button
-              type="button"
-              className="ml-4 bg-red-600 text-sky-100 py-2 px-4 rounded hover:bg-red-500"
-              onClick={onClose} // Triggering the dialog close function
-            >
-              Cancel
-            </button>
-          </div>
-        </form>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
 
 function BudgetOverview() {
+  const { address, isConnected } = useAccount()
+  const [isLoading, setIsLoading] = useState(false)
+  const [budgets, setBudgets] = useState<{
+    name: string
+    spent: bigint
+    budget: bigint
+  }[]>([])
+  const [contract, setContract] = useState<ethers.Contract | null>(null)
+
+  useEffect(() => {
+    const initializeContract = async () => {
+      if (isConnected && address) {
+        try {
+          setIsLoading(true)
+          // Get provider from window.ethereum
+          const provider = new ethers.BrowserProvider(window.ethereum)
+          const signer = await provider.getSigner()
+          const contractInstance = new ethers.Contract(contractAddress, contractABI, signer)
+          setContract(contractInstance)
+          
+          await fetchBudgets(contractInstance)
+        } catch (error) {
+          console.error("Error initializing contract:", error)
+          toast.error("Failed to connect to blockchain")
+        } finally {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    initializeContract()
+  }, [isConnected, address])
+
+  const fetchBudgets = async (contractInstance: ethers.Contract) => {
+    try {
+      setIsLoading(true)
+      const result = await contractInstance.getBudgets()
+      setBudgets(result)
+    } catch (error) {
+      console.error("Error fetching budgets:", error)
+      toast.error("Failed to fetch budgets")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Format the amount from Wei to Ether
+  const formatAmount = (amount: bigint) => {
+    return parseFloat(ethers.formatEther(amount)).toFixed(4)
+  }
+
+  // Calculate percentage
+  const calculatePercentage = (spent: bigint, budget: bigint) => {
+    if (budget === 0n) return 0
+    return (Number(spent) / Number(budget)) * 100
+  }
+
   return (
     <Card className="bg-sky-950 text-sky-100">
-      <CardHeader>
-        <CardTitle className="text-sky-300 text-lg sm:text-xl">Budget Overview</CardTitle>
-        <CardDescription className="text-sky-400 text-sm">Your spending vs budget this month</CardDescription>
+      <CardHeader className="flex flex-row items-center">
+        <div>
+          <CardTitle className="text-sky-300 text-lg sm:text-xl">Budget Overview</CardTitle>
+          <CardDescription className="text-sky-400 text-sm">Your spending vs budget this month</CardDescription>
+        </div>
+        {contract && (
+          <Button
+            size="sm"
+            onClick={() => contract && fetchBudgets(contract)}
+            className="ml-auto bg-sky-700 hover:bg-sky-600 text-sky-100"
+            disabled={isLoading}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-1", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+        )}
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          <BudgetCategory name="Housing" spent={1200} budget={1500} />
-          <BudgetCategory name="Food" spent={450} budget={600} />
-          <BudgetCategory name="Transportation" spent={200} budget={300} />
-          <BudgetCategory name="Entertainment" spent={150} budget={200} />
-          <BudgetCategory name="Utilities" spent={280} budget={350} />
-        </div>
+        {isLoading ? (
+          <div className="text-center py-8 text-sky-400">Loading budgets...</div>
+        ) : budgets.length === 0 ? (
+          <div className="text-center py-8 text-sky-400">
+            No budgets found. <Link href="/budgets" className="text-sky-300 underline">Create your first budget</Link>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {budgets.slice(0, 5).map((budget, index) => {
+              const percentage = calculatePercentage(budget.spent, budget.budget)
+              return (
+                <div key={index} className="space-y-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-sky-300">{budget.name}</span>
+                    <span className="text-sky-400">
+                      {formatAmount(budget.spent)} ETH / {formatAmount(budget.budget)} ETH
+                    </span>
+                  </div>
+                  <div className="h-2 w-full rounded-full bg-sky-900">
+                    <div
+                      className={`h-full rounded-full ${percentage > 90 ? 'bg-red-500' : 'bg-sky-500'}`}
+                      style={{ width: `${Math.min(percentage, 100)}%` }}
+                    />
+                  </div>
+                  <div className="text-xs text-sky-400 text-right">
+                    {percentage.toFixed(1)}% used
+                  </div>
+                </div>
+              )
+            })}
+            {budgets.length > 5 && (
+              <div className="text-center mt-4">
+                <Link href="/budgets" className="text-sky-300 text-sm underline">
+                  View all {budgets.length} budgets
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   )
@@ -697,17 +683,93 @@ function BudgetCategory({ name, spent, budget }: { name: string; spent: number; 
 
 
 function SavingsGoals() {
+  const { address, isConnected } = useAccount()
+  const [isLoading, setIsLoading] = useState(false)
+  const [savingsGoals, setSavingsGoals] = useState<{
+    name: string
+    current: bigint
+    target: bigint
+  }[]>([])
+  const [contract, setContract] = useState<ethers.Contract | null>(null)
+
+  useEffect(() => {
+    const initializeContract = async () => {
+      if (isConnected && address) {
+        try {
+          setIsLoading(true)
+          // Get provider from window.ethereum
+          const provider = new ethers.BrowserProvider(window.ethereum)
+          const signer = await provider.getSigner()
+          const contractInstance = new ethers.Contract(contractAddress, contractABI, signer)
+          setContract(contractInstance)
+          
+          await fetchSavingsGoals(contractInstance)
+        } catch (error) {
+          console.error("Error initializing contract:", error)
+          toast.error("Failed to connect to blockchain")
+        } finally {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    initializeContract()
+  }, [isConnected, address])
+
+  const fetchSavingsGoals = async (contractInstance: ethers.Contract) => {
+    try {
+      setIsLoading(true)
+      const result = await contractInstance.getSavingsGoals()
+      setSavingsGoals(result)
+    } catch (error) {
+      console.error("Error fetching savings goals:", error)
+      toast.error("Failed to fetch savings goals")
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Format the amount from Wei to USD (assuming 1 ETH = $3000 for display purposes)
+  const formatAmount = (amount: bigint) => {
+    const amountInEth = parseFloat(ethers.formatEther(amount))
+    const usdValue = amountInEth * 3000 // Simple conversion for display
+    return usdValue.toFixed(2)
+  }
+
   return (
     <Card className="bg-sky-950 text-sky-100">
-      <CardHeader>
-        <CardTitle className="text-sky-300 text-lg sm:text-xl">Savings Goals</CardTitle>
-        <CardDescription className="text-sky-400 text-sm">Track your progress towards financial goals</CardDescription>
+      <CardHeader className="flex flex-row items-center">
+        <div>
+          <CardTitle className="text-sky-300 text-lg sm:text-xl">Savings Goals</CardTitle>
+          <CardDescription className="text-sky-400 text-sm">Track your progress towards financial goals</CardDescription>
+        </div>
+        {contract && (
+          <Button
+            size="sm"
+            onClick={() => contract && fetchSavingsGoals(contract)}
+            className="ml-auto bg-sky-700 hover:bg-sky-600 text-sky-100"
+            disabled={isLoading}
+          >
+            <RefreshCw className={cn("h-4 w-4 mr-1", isLoading && "animate-spin")} />
+            Refresh
+          </Button>
+        )}
       </CardHeader>
       <CardContent className="space-y-6 sm:space-y-8">
-        <SavingsGoal name="Emergency Fund" current={5000} target={10000} />
-        <SavingsGoal name="Vacation" current={2500} target={5000} />
-        <SavingsGoal name="New Car" current={7500} target={20000} />
-      </CardContent>
+        {isLoading ? (
+          <div className="text-center py-8 text-sky-400">Loading savings goals...</div>
+        ) : savingsGoals.length === 0 ? (
+          <div className="text-center py-8 text-sky-400">No savings goals found. Add your first goal!</div>
+        ) : (
+          savingsGoals.map((goal, index) => (
+            <SavingsGoal 
+              key={index} 
+              name={goal.name} 
+              current={parseFloat(formatAmount(goal.current))} 
+              target={parseFloat(formatAmount(goal.target))} 
+            />
+          ))
+        )}      </CardContent>
     </Card>
   )
 }
